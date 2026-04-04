@@ -1,0 +1,35 @@
+<?php
+/**
+ * Sanitized sample in PHP-array format (same shape as WPGetAPI output).
+ */
+
+$sample_products = [
+    [
+        'id' => 477,
+        'code' => '20022',
+        'barcode' => '5204319103772',
+        'rtlprice' => '400',
+        'description' => 'ΚΕΦΑΛΗ ΑΕΡΟΣΥΜΠΙΕΣΤΗ 3-4HP ΜΚ113',
+        'netprice' => '0',
+        'maxsalesprice' => '0',
+        'availability' => 2,
+        'templatedescr' => 'Κεφαλές Αεροσυμπιεστών',
+        'recycle_value' => '0',
+        'image' => 'https://supplier.example.com/statics/catalog/20022_800x800_1.jpg',
+        'htmldescription' => 'Παράδειγμα τεχνικής περιγραφής προϊόντος.',
+    ],
+    [
+        'id' => 493,
+        'code' => '20123',
+        'barcode' => '5204319103864',
+        'rtlprice' => '515',
+        'description' => 'ΚΕΦΑΛΗ ΑΕΡΟΣΥΜΠΙΕΣΤΗ 4.0HP Ν4 (Α80)',
+        'netprice' => '0',
+        'maxsalesprice' => '0',
+        'availability' => 2,
+        'templatedescr' => 'Κεφαλές Αεροσυμπιεστών',
+        'recycle_value' => '0',
+        'image' => 'https://supplier.example.com/statics/catalog/20123_800x800_1.jpg',
+        'htmldescription' => 'Παράδειγμα τεχνικής περιγραφής προϊόντος.',
+    ],
+];
