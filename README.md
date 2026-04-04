@@ -111,10 +111,6 @@ Below: desktop and mobile views of the catalog + API-driven grid (filters, offer
 
 ![Mobile — offers + sticky bar](assets/images/06-mobile-view-products-grid-offer.png)
 
-## Planned improvements
+## If I extend this later
 
-- Convert snippets into a custom plugin structure
-- Add unit/integration tests for pricing/filter logic
-- Add cache invalidation strategy by supplier update timestamp
-- Add rate-limit/failure fallback for API downtime
-
+This repo is a **working snapshot** of the feature (snippets + samples + screenshots). Natural next steps—when the production site needs them—would be things like packaging as a proper plugin, adding tests for pricing/filter helpers, and tighter cache/error handling around the API. Treated as ideas for future work, not a published roadmap.
