@@ -12,7 +12,7 @@ It demonstrates rendering a large supplier catalog from API data **without impor
 - Virtual-product cart bridge for API-only items
 - Price guard: disable buying when no valid price
 - Advanced filtering on full dataset (search, min/max, offer-only, sorting, AND logic)
-- Leaflet CSV override for seasonal offers (~1500 products, a few times/year)
+- Leaflet CSV override for seasonal offers (~1500 products, a few times/year); CSV is fetched over HTTP and **delimiter is auto-detected** (`;` vs `,`) so a supplier format change does not break offer pricing or the “Only offers” filter
 - VAT logic:
   - API prices are net -> VAT added for display
   - CSV prices are final gross -> converted correctly for cart calculations
@@ -48,7 +48,7 @@ The sample data mirrors the real API structure (sanitized):
 
 - `snippets/01-products-cache.php` - API fetch + transient caching
 - `snippets/02-cart-engine.php` - cart data mapping + pricing in cart + display fields
-- `snippets/03-leaflet-pricing.php` - CSV reading + leaflet price index
+- `snippets/03-leaflet-pricing.php` - leaflet CSV via `wp_remote_get`, line parsing with **auto-detected delimiter**, normalized codes → price map + transient cache
 - `snippets/04-ui-rendering.php` - UI/CSS/JS, rendering, prefetch, filters, sorting, add-to-cart UX
 - `snippets/05-ajax-add-to-cart.php` - AJAX add-to-cart endpoint for virtual product
 - `snippets/06-ajax-products.php` - AJAX products endpoint + filtering/paging/sorting pipeline
@@ -66,7 +66,7 @@ Define these in your environment when wiring this into a real site.
 ## Architecture flow
 
 1. Fetch supplier API payload and cache it in transient.
-2. Build leaflet lookup map from CSV (`code -> gross special price`).
+2. Build leaflet lookup map from CSV (`code -> gross special price`), tolerating **semicolon- or comma-separated** rows per line.
 3. Apply filtering and sorting server-side across full dataset.
 4. Return current page (25 items) to frontend.
 5. Frontend renders cards and prefetches next page.
