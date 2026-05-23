@@ -1,6 +1,6 @@
 ﻿/*
 ========================================
-ext_catalog API PRODUCTS CACHE (TEST MODE)
+EXTERNAL CATALOG – API PRODUCTS CACHE
 ========================================
 */
 
@@ -25,13 +25,3 @@ function ext_catalog_get_products(){
 
     return $products;
 }
-
-// =========================
-// DIRECT OUTPUT (FOR WPCode)
-// =========================
-// $products = ext_catalog_get_products();
-
-// echo '<div style="background:#fff;padding:15px;border:2px solid red;">';
-// echo '<strong>ext_catalog TEST</strong><br>';
-// echo 'Products loaded: '.count($products);
-// echo '</div>';

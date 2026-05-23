@@ -27,7 +27,7 @@ function ext_catalog_add_cart_item_data($cart_item_data,$product_id,$variation_i
 
     if(empty($_REQUEST['api_code'])) return $cart_item_data;
 
-    // β… LOAD PRODUCTS SAFELY
+    // Load products safely
     $products = get_transient('ext_catalog_products');
 
     if(empty($products)){
@@ -59,7 +59,7 @@ function ext_catalog_add_cart_item_data($cart_item_data,$product_id,$variation_i
 $norm = ext_catalog_normalize_code($code);
 
 if(isset($leaflet[$norm])){
-    // leaflet price is GROSS β†’ convert to NET
+    // Leaflet price is gross; convert to net for cart
     $cart_item_data['api_price'] = $leaflet[$norm] / 1.24;
 }else{
     $cart_item_data['api_price'] = floatval($item['rtlprice']);

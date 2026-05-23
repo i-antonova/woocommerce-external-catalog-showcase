@@ -1,6 +1,6 @@
-/*
+﻿/*
 ========================================
-EXTERNAL CATALOG UI PACK (FINAL)
+EXTERNAL CATALOG – UI PACK (FINAL COMPLETE)
 UI + PREFETCH + ANIMATIONS
 ========================================
 */
@@ -12,19 +12,23 @@ window.ext_catalog_AJAX = "'.admin_url('admin-ajax.php').'";
 
 <style>
 
-/* BASE */
+/* ===== BASE ===== */
 body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
-
-/* GRID */
+	
+/* ===== GRID ===== */
 .ext_catalog-grid{
     display:grid;
     grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
     gap:20px;
 }
+	
+#results-count{
+    margin:10px 0 15px;
+}
 
-/* CARD */
+/* ===== CARD ===== */
 .ext_catalog-card{
     display:flex;
     flex-direction:column; /* KEY for equal height */
@@ -47,7 +51,7 @@ body{
 @keyframes fadeIn{
     to{opacity:1; transform:translateY(0);}
 }
-
+	
 /* IMAGE WRAPPER */
 .ext_catalog-img-wrap{
     overflow:hidden;
@@ -69,14 +73,14 @@ body{
     filter:brightness(1.05);
 }
 
-/* TITLE */
+/* ===== TITLE ===== */
 .ext_catalog-title{
     font-size:14px;
     line-height:1.2em;
     margin:8px 0;
 }
 
-/* DESKTOP TITLE CONTROL (5 lines) */
+/* ===== DESKTOP TITLE CONTROL (5 lines) ===== */
 @media (min-width: 768px){
 
     .ext_catalog-title{
@@ -89,14 +93,14 @@ body{
 
 }
 
-/* CONTENT PUSH (align buttons nicely) */
+/* ===== CONTENT PUSH (align buttons nicely) ===== */
 .ext_catalog-price{
     font-size:18px;
     font-weight:bold;
     margin-top:auto; /* pushes price + button to bottom */
 }
 
-/* BUTTON */
+/* ===== BUTTON ===== */
 .ext_catalog-btn{
     width:100%;
     padding:10px;
@@ -117,7 +121,7 @@ body{
     background:#ccc;
 }
 
-/* BADGE */
+/* ===== BADGE ===== */
 .ext_catalog-badge{
     position:absolute;
     top:10px;
@@ -131,13 +135,13 @@ body{
     transform:translateZ(0);
 }
 
-/* OLD PRICE */
+/* ===== OLD PRICE ===== */
 .ext_catalog-old{
     text-decoration:line-through;
     color:#999;
 }
 
-/*RESPONSIVE GRID IMPROVEMENT */
+/* ===== RESPONSIVE GRID IMPROVEMENT ===== */
 
 /* Tablet */
 @media (max-width: 1024px){
@@ -154,7 +158,7 @@ body{
     }
 }
 
-/* MOBILE (1 COLUMN OPTIMIZED) */
+/* ===== MOBILE (1 COLUMN OPTIMIZED) ===== */
 @media (max-width: 480px){
 
     .ext_catalog-grid{
@@ -188,7 +192,7 @@ body{
     }
 }
 
-/* FILTERS */
+/* ===== FILTERS ===== */
 .ext_catalog-filters{
     position:sticky;
     top:80px;
@@ -198,16 +202,22 @@ body{
     display:flex;
     flex-wrap:wrap;
     gap:10px;
+	border-radius:10px;
     border-bottom:1px solid #eee;
 }
 
 .ext_catalog-filters input,
-.ext_catalog-filters select{
+.ext_catalog-filters select,
+.ext_catalog-filters button	{
     padding:8px 10px;
     border:1px solid #ddd;
     border-radius:8px;
 }
-
+	
+	.ext_catalog-filters button:hover {
+		background:#cccccc;
+	}	
+	
 .ext_catalog-check{
     display:flex;
     align-items:center;
@@ -218,28 +228,9 @@ body{
 .ext_catalog-check input{
     vertical-align:middle;
 }
+	
 
-/* TOAST */
-.ext_catalog-toast{
-    position:fixed;
-    bottom:20px;
-    right:20px;
-    background:#000;
-    color:#fff;
-    padding:12px 18px;
-    border-radius:8px;
-    opacity:0;
-    transform:translateY(20px);
-    transition:.3s;
-    z-index:9999;
-}
-
-.ext_catalog-toast.show{
-    opacity:1;
-    transform:translateY(0);
-}
-
-/* LOAD MORE */
+/* ===== LOAD MORE ===== */
 .ext_catalog-load-wrap{
     text-align:center;
     margin:30px 0;
@@ -254,7 +245,7 @@ body{
     cursor:pointer;
 }
 
-/*  SKELETON */
+/* ===== SKELETON ===== */
 .skeleton{
     height:250px;
     background:linear-gradient(90deg,#eee,#f5f5f5,#eee);
@@ -267,7 +258,7 @@ body{
     100%{background-position:200px;}
 }
 
-/* CART ANIMATION */
+/* ===== CART ANIMATION ===== */
 @keyframes ext_catalog-bounce{
     0%{transform:scale(1);}
     30%{transform:scale(1.25);}
@@ -285,14 +276,12 @@ mark{
 
 </style>
 
-<div id="toast" class="ext_catalog-toast"></div>
-
 <div class="ext_catalog-filters">
     <input id="search" placeholder="Search...">
     <input id="min" type="number" placeholder="Min €">
     <input id="max" type="number" placeholder="Max €">
     <label class="ext_catalog-check">
-    <input type="checkbox" id="offer">
+    <input type="checkbox" id="offer"> 
     <span>Only offers</span>
 	</label>
     <select id="sort">
@@ -311,32 +300,39 @@ mark{
 let page = 1;
 let prefetched = null;
 
-/*  HIGHLIGHT */
+/* ===== HIGHLIGHT ===== */
+function normalizeGreek(str){
+    return str
+        .toLocaleLowerCase('el-GR')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
 function highlight(text, search){
+
     if(!search) return text;
-    let i = text.toLowerCase().indexOf(search.toLowerCase());
+
+    const normalizedText = normalizeGreek(text);
+    const normalizedSearch = normalizeGreek(search);
+
+    let i = normalizedText.indexOf(normalizedSearch);
+
     if(i === -1) return text;
-    return text.substring(0,i)+"<mark>"+text.substring(i,i+search.length)+"</mark>"+text.substring(i+search.length);
+
+    return text.substring(0,i)
+        + "<mark>"
+        + text.substring(i,i+search.length)
+        + "</mark>"
+        + text.substring(i+search.length);
 }
 
-/* TOAST */
-function toast(msg, ok=true){
-    let t=document.getElementById("toast");
-    t.innerHTML = ok
-        ? `✔ ${msg} <a href="/cart" style="color:#fff;margin-left:10px;">View cart</a>`
-        : `⚠ ${msg}`;
-    t.style.background = ok ? "#0a7d00" : "#b00020";
-    t.classList.add("show");
-    setTimeout(()=>t.classList.remove("show"),3000);
-}
-
-/* SKELETON */
+/* ===== SKELETON ===== */
 function showSkeleton(){
     let c=document.getElementById("ext_catalog-container");
     c.innerHTML='<div class="ext_catalog-grid">'+Array(8).fill('<div class="skeleton"></div>').join('')+'</div>';
 }
 
-/* FETCH */
+/* ===== FETCH ===== */
 function fetchProducts(reset=false){
 
     if(reset){
@@ -371,7 +367,7 @@ function fetchProducts(reset=false){
     });
 }
 
-/* RENDER */
+/* ===== RENDER ===== */
 function render(res){
 
     let container=document.getElementById("ext_catalog-container");
@@ -431,7 +427,7 @@ Add to cart
     }
 }
 
-/* PREFETCH */
+/* ===== PREFETCH ===== */
 function prefetchNext(){
     fetch(window.ext_catalog_AJAX,{
         method:"POST",
@@ -449,7 +445,7 @@ function prefetchNext(){
     .then(res=>{ prefetched=res; });
 }
 
-/* CART */
+/* ===== CART ===== */
 function addToCart(code){
     fetch(window.ext_catalog_AJAX,{
         method:"POST",
@@ -461,12 +457,9 @@ function addToCart(code){
     .then(r=>r.json())
     .then(res=>{
         if(res.success){
-            toast("Product added",true);
             refreshCart();
             updateCartCount();
             animateCart();
-        }else{
-            toast("Error",false);
         }
     });
 }
@@ -490,7 +483,7 @@ function animateCart(){
     c.classList.add('ext_catalog-cart-bounce');
 }
 
-/* FILTERS */
+/* ===== FILTERS ===== */
 function resetFilters(){
     search.value="";
     min.value="";

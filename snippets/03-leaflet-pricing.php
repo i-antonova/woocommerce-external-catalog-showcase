@@ -50,7 +50,6 @@ function ext_catalog_get_leaflet_prices() {
             continue;
         }
 
-        // Auto-detect delimiter (; vs ,) so leaflet CSV keeps working if format changes
         $delimiter = (substr_count($line, ';') > substr_count($line, ',')) ? ';' : ',';
 
         $data = str_getcsv($line, $delimiter);
