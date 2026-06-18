@@ -16,14 +16,14 @@ window.ext_catalog_AJAX = "'.admin_url('admin-ajax.php').'";
 body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
 }
-	
+
 /* ===== GRID ===== */
 .ext_catalog-grid{
     display:grid;
     grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
     gap:20px;
 }
-	
+
 #results-count{
     margin:10px 0 15px;
 }
@@ -31,7 +31,7 @@ body{
 /* ===== CARD ===== */
 .ext_catalog-card{
     display:flex;
-    flex-direction:column; /* KEY for equal height */
+    flex-direction:column;
     border:1px solid #eee;
     border-radius:12px;
     padding:15px;
@@ -51,7 +51,7 @@ body{
 @keyframes fadeIn{
     to{opacity:1; transform:translateY(0);}
 }
-	
+
 /* IMAGE WRAPPER */
 .ext_catalog-img-wrap{
     overflow:hidden;
@@ -88,7 +88,7 @@ body{
         -webkit-line-clamp:5;
         -webkit-box-orient:vertical;
         overflow:hidden;
-        min-height:6em; /* keeps alignment */
+        min-height:6em;
     }
 
 }
@@ -97,7 +97,7 @@ body{
 .ext_catalog-price{
     font-size:18px;
     font-weight:bold;
-    margin-top:auto; /* pushes price + button to bottom */
+    margin-top:auto;
 }
 
 /* ===== BUTTON ===== */
@@ -143,14 +143,12 @@ body{
 
 /* ===== RESPONSIVE GRID IMPROVEMENT ===== */
 
-/* Tablet */
 @media (max-width: 1024px){
     .ext_catalog-grid{
         grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
     }
 }
 
-/* Small tablets / large phones */
 @media (max-width: 768px){
     .ext_catalog-grid{
         grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
@@ -158,11 +156,10 @@ body{
     }
 }
 
-/* ===== MOBILE (1 COLUMN OPTIMIZED) ===== */
 @media (max-width: 480px){
 
     .ext_catalog-grid{
-        grid-template-columns:1fr; /* force single column */
+        grid-template-columns:1fr;
         gap:14px;
         padding:0 10px;
     }
@@ -202,22 +199,22 @@ body{
     display:flex;
     flex-wrap:wrap;
     gap:10px;
-	border-radius:10px;
+    border-radius:10px;
     border-bottom:1px solid #eee;
 }
 
 .ext_catalog-filters input,
 .ext_catalog-filters select,
-.ext_catalog-filters button	{
+.ext_catalog-filters button{
     padding:8px 10px;
     border:1px solid #ddd;
     border-radius:8px;
 }
-	
-	.ext_catalog-filters button:hover {
-		background:#cccccc;
-	}	
-	
+
+.ext_catalog-filters button:hover{
+    background:#cccccc;
+}
+
 .ext_catalog-check{
     display:flex;
     align-items:center;
@@ -228,7 +225,26 @@ body{
 .ext_catalog-check input{
     vertical-align:middle;
 }
-	
+
+/* ===== TOAST ===== */
+.ext_catalog-toast{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:#000;
+    color:#fff;
+    padding:12px 18px;
+    border-radius:8px;
+    opacity:0;
+    transform:translateY(20px);
+    transition:.3s;
+    z-index:9999;
+}
+
+.ext_catalog-toast.show{
+    opacity:1;
+    transform:translateY(0);
+}
 
 /* ===== LOAD MORE ===== */
 .ext_catalog-load-wrap{
@@ -276,14 +292,16 @@ mark{
 
 </style>
 
+<div id="toast" class="ext_catalog-toast"></div>
+
 <div class="ext_catalog-filters">
     <input id="search" placeholder="Search...">
     <input id="min" type="number" placeholder="Min €">
     <input id="max" type="number" placeholder="Max €">
     <label class="ext_catalog-check">
-    <input type="checkbox" id="offer"> 
+    <input type="checkbox" id="offer">
     <span>Only offers</span>
-	</label>
+    </label>
     <select id="sort">
         <option value="">Sort</option>
         <option value="asc">Price ↑</option>
@@ -300,12 +318,41 @@ mark{
 let page = 1;
 let prefetched = null;
 
-/* ===== HIGHLIGHT ===== */
+/* ===== HIGHLIGHT (sync with ext_catalog_normalize_search_text in snippet 06) ===== */
 function normalizeGreek(str){
-    return str
+    if(str == null) return '';
+    return String(str)
         .toLocaleLowerCase('el-GR')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
+}
+
+function mapNormalizedRangeToOriginal(text, normStart, normLength){
+    let normPos = 0;
+    let start = null;
+    let end = null;
+    let origIdx = 0;
+
+    for(const char of [...text]){
+        const charNorm = normalizeGreek(char);
+        const normEnd = normPos + charNorm.length;
+
+        if(start === null && normEnd > normStart){
+            start = origIdx;
+        }
+        if(start !== null && end === null && normEnd >= normStart + normLength){
+            end = origIdx + char.length;
+            break;
+        }
+
+        normPos = normEnd;
+        origIdx += char.length;
+    }
+
+    if(start === null) return { start: 0, end: 0 };
+    if(end === null) end = text.length;
+
+    return { start, end };
 }
 
 function highlight(text, search){
@@ -315,15 +362,30 @@ function highlight(text, search){
     const normalizedText = normalizeGreek(text);
     const normalizedSearch = normalizeGreek(search);
 
-    let i = normalizedText.indexOf(normalizedSearch);
+    if(!normalizedSearch) return text;
+
+    const i = normalizedText.indexOf(normalizedSearch);
 
     if(i === -1) return text;
 
-    return text.substring(0,i)
+    const { start, end } = mapNormalizedRangeToOriginal(text, i, normalizedSearch.length);
+
+    return text.substring(0, start)
         + "<mark>"
-        + text.substring(i,i+search.length)
+        + text.substring(start, end)
         + "</mark>"
-        + text.substring(i+search.length);
+        + text.substring(end);
+}
+
+/* ===== TOAST ===== */
+function toast(msg, ok=true){
+    let t=document.getElementById("toast");
+    t.innerHTML = ok
+        ? `✔ ${msg} <a href="/cart" style="color:#fff;margin-left:10px;">View cart</a>`
+        : `⚠ ${msg}`;
+    t.style.background = ok ? "#0a7d00" : "#b00020";
+    t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"),3000);
 }
 
 /* ===== SKELETON ===== */
@@ -362,8 +424,15 @@ function fetchProducts(reset=false){
     })
     .then(r=>r.json())
     .then(res=>{
+        if(!res || !Array.isArray(res.products)){
+            console.error('EXT_CATALOG: invalid AJAX response', res);
+            return;
+        }
         render(res);
         prefetchNext();
+    })
+    .catch(err=>{
+        console.error('EXT_CATALOG: fetch failed', err);
     });
 }
 
@@ -457,9 +526,12 @@ function addToCart(code){
     .then(r=>r.json())
     .then(res=>{
         if(res.success){
+            toast("Product added",true);
             refreshCart();
             updateCartCount();
             animateCart();
+        }else{
+            toast("Error",false);
         }
     });
 }
@@ -502,3 +574,4 @@ sort.onchange=()=>fetchProducts(true);
 fetchProducts(true);
 
 </script>
+

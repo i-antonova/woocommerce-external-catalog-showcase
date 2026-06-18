@@ -11,7 +11,8 @@ It demonstrates rendering a large supplier catalog from API data **without impor
 - Paginated + prefetched client rendering (25 per batch)
 - Virtual-product cart bridge for API-only items
 - Price guard: disable buying when no valid price
-- Advanced filtering on full dataset (search, min/max, offer-only, sorting, AND logic); **Greek search** on the server (`mb_strtolower` / `mb_strpos`, UTF-8) and in the UI (`normalizeGreek` + accent-insensitive highlight)
+- Advanced filtering on full dataset (search, min/max, offer-only, sorting, AND logic)
+- **Greek-aware search**: server (`ext_catalog_normalize_search_text` in snippet 06) and client (`normalizeGreek` + highlight in snippet 04) use the same rules — lowercase, UTF-8, accent-insensitive matching
 - Leaflet CSV override for seasonal offers (~1500 products, a few times/year)
 - VAT logic:
   - API prices are net -> VAT added for display
@@ -51,7 +52,7 @@ The sample data mirrors the real API structure (sanitized):
 - `snippets/03-leaflet-pricing.php` - leaflet CSV → normalized code/price map + transient cache
 - `snippets/04-ui-rendering.php` - UI/CSS/JS, rendering, prefetch, filters, sorting, add-to-cart UX; client-side Greek highlight aligned with search rules
 - `snippets/05-ajax-add-to-cart.php` - AJAX add-to-cart endpoint for virtual product
-- `snippets/06-ajax-products.php` - AJAX products endpoint + filtering/paging/sorting; **Greek-aware search** via `mb_strtolower` / `mb_strpos` (UTF-8)
+- `snippets/06-ajax-products.php` - AJAX filter/paging/sort; `ext_catalog_normalize_search_text()` + `function_exists` guards (PHP intl `Normalizer` when available)
 - `snippets/00-config-example.php` - public-safe config placeholders
 
 ## Configuration (for local reuse)
@@ -72,6 +73,25 @@ Define these in your environment when wiring this into a real site.
 5. Frontend renders cards and prefetches next page.
 6. Add-to-cart uses virtual WooCommerce product + custom cart metadata.
 7. Cart price is injected from API/leaflet logic.
+
+## Greek-aware search (server + UI)
+
+Filtering runs on the **server** across the full catalog (~4000 items). Highlighting runs in the **browser** on titles already returned.
+
+Shared normalization idea (keep both implementations in sync):
+
+1. Lowercase (Greek / UTF-8)
+2. Decompose accents (NFD)
+3. Strip combining marks
+4. Match with `mb_strpos` (PHP) or `indexOf` on normalized strings (JS)
+
+Snippet 06 defines `ext_catalog_normalize_search_text()`. Snippet 04 defines `normalizeGreek()` and maps matches back to the original title for `<mark>` highlighting.
+
+## Deployment note (WPCode)
+
+Edit **existing** snippets in place rather than duplicating them. Two active copies can redeclare the same PHP functions or register AJAX hooks twice and break the site (e.g. shortcodes rendering as raw text). Use `function_exists()` guards and a stable snippet load order: cache → cart → leaflet → AJAX handlers → UI (page-only).
+
+See `docs/wpcode-deployment.md`.
 
 ## AI-assisted development note
 
@@ -111,6 +131,10 @@ Below: desktop and mobile views of the catalog + API-driven grid (filters, offer
 
 ![Mobile — offers + sticky bar](assets/images/06-mobile-view-products-grid-offer.png)
 
-## If I extend this later
+## Current direction
 
-This repo is a **working snapshot** of the feature (snippets + samples + screenshots). Natural next steps—when the production site needs them—would be things like packaging as a proper plugin, adding tests for pricing/filter helpers, and tighter cache/error handling around the API. Treated as ideas for future work, not a published roadmap.
+This repo is a **working snapshot** of the public-catalog feature (snippets, samples, screenshots).
+
+**In progress (production, not in this repo yet):** extending the store with **dynamic B2B pricing** — customer-specific price rules and differentiated pricing strategies on top of the external catalog. The live site is a **private B2B catalogue** (no public demo); checkout/payment happens outside WooCommerce.
+
+Future ideas (optional, not a fixed roadmap): packaging as a plugin, tests for pricing/filter helpers, tighter API cache handling.
